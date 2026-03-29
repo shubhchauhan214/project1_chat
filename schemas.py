@@ -12,6 +12,10 @@ class ChatRequest(BaseModel):
             }
         }
 
+class ChatCreate(BaseModel):
+    user_msg: str
+    bot_msg: str
+
 class ChatResponse(BaseModel):
     reply: str
     message_id: int

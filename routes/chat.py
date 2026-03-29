@@ -1,5 +1,5 @@
 import os
-import anthropic
+from groq import Groq
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
@@ -10,34 +10,25 @@ load_dotenv()
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
-client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 @router.post("/", response_model=schemas.ChatResponse)
 def send_message(request: schemas.ChatRequest, db: Session = Depends(get_db)):
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=500,
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "user", "content": request.message}
-            ]
+            ],
+            max_tokens=500
         )
 
-        reply = response.content[0].text
+        reply = response.choices[0].message.content
 
-        chat_data = schemas.ChatCreate(user_msg=request.message, bot_reply=reply)
+        chat_data = schemas.ChatCreate(user_msg=request.message, bot_msg=reply)
         saved = crud.create_chat(db, chat_data)
 
         return schemas.ChatResponse(reply=reply, message_id=saved.id)
-
-    except anthropic.AuthenticationError:
-        raise HTTPException(status_code=401, detail="Anthropic API key is wrong or missing")
-
-    except anthropic.RateLimitError:
-        raise HTTPException(status_code=429, detail="API rate limit exceeded, please try again later")
-
-    except anthropic.APIConnectionError:
-        raise HTTPException(status_code=503, detail="Anthropic service is currently unavailable, please try again later")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Something went wrong: {str(e)}")

@@ -24,7 +24,7 @@ class ChatHistoryOut(BaseModel):
     id: int
     user_msg: str
     bot_msg: str
-    create_at: datetime
+    created_at: datetime
 
     class Config:
         from_attributes = True
